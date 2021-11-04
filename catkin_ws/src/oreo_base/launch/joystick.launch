@@ -1,0 +1,20 @@
+<launch>
+  <include file="$(find teleop_twist_joy)/launch/teleop.launch">
+    <arg name="joy_config" value="xbox"/>
+  </include>  
+
+  <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>
+  <node pkg="tf" name="velodyne_tf" type="static_transform_publisher" args="0 0 0.75 0 0 0 1 base_link velodyne 100"/>
+
+  <arg name="host" default="192.168.11.100" />
+  <node pkg="lms1xx" name="lms1xx" type="LMS1xx_node" output="screen">
+    <remap from="/scan" to="/sick_scan" />
+    <param name="host" value="$(arg host)" />
+  </node>
+  <node pkg="oreo_base" name="cut_scan" type="cut_scan.py"/>
+
+  <node pkg="tf" name="tf" type="static_transform_publisher" args="0.156 0 0 0 0 0 1 base_link laser 100"/>
+  <node pkg="oreo_base" name="motor_controller" type="motor_controller" output="screen"/>
+  <node pkg="oreo_base" name="odometer_odom" type="odometer_odom"/>
+  <node pkg="oreo_base" name="scale_velocity" type="scale_cmd_vel.py"/>
+</launch>
