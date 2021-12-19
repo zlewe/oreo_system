@@ -1,0 +1,44 @@
+group "06_sensors" {
+    cmd "lidar" {
+        deputy = "localhost";
+        exec = "roslaunch velodyne_pointcloud VLP16_points.launch";
+    }
+}
+group "07_slam" {
+    cmd "3d_lego_loam" {
+        deputy = "localhost";
+        exec = "roslaunch lego_loam run.launch";
+    }
+    cmd "2d_gmapping" {
+        deputy = "localhost";
+        exec = "roslaunch gmapping slam_gmapping_pr2.launch scan_topic:=scan";
+    }
+}
+cmd "88_rviz" {
+    deputy = "localhost";
+    exec = "rviz -d oreo.rviz";
+}
+cmd "01_core" {
+    deputy = "localhost";
+    exec = "roscore";
+}
+cmd "10_joystick" {
+    deputy = "localhost";
+    exec = "roslaunch teleop_twist_joy teleop.launch joy_config:=xbox-holonomic cmd_topic:=temp_cmd_vel";
+}
+cmd "02_oreo" {
+    deputy = "localhost";
+    exec = "roslaunch oreo_base oreo.launch";
+}
+cmd "99_record" {
+    deputy = "localhost";
+    exec = "/bin/bash record_bag.sh";
+}
+
+script "start_oreo" {
+    start cmd "01_core" wait "running";
+    wait ms 1500;
+    start cmd "02_oreo" wait "running";
+    wait ms 1000;
+    start group "06_sensors" wait "running";
+}

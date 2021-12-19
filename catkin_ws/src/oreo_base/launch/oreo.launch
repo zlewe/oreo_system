@@ -1,8 +1,4 @@
 <launch>
-  <include file="$(find teleop_twist_joy)/launch/teleop.launch">
-    <arg name="joy_config" value="xbox"/>
-  </include>  
-
   <!--<include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>-->
   <node pkg="tf" name="velodyne_tf" type="static_transform_publisher" args="0 0 0.75 0 0 0 1 base_link velodyne 100"/>
 
