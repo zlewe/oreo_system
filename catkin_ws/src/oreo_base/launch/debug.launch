@@ -1,0 +1,12 @@
+<launch>
+  <rosparam command="load" file="$(find oreo_base)/param/oreo_base.yaml" />
+
+  <arg name="host" default="192.168.11.100" />
+  <node pkg="lms1xx" name="lms1xx" type="LMS1xx_node" output="screen">
+    <param name="host" value="$(arg host)" />
+  </node>
+
+  <node pkg="oreo_base" name="motor_controller" type="motor_controller"/>
+  <node pkg="oreo_base" name="odometer" type="odometer"/>
+  <node pkg="oreo_base" name="motion_controller" type="motion_controller" output="screen"/>
+</launch>

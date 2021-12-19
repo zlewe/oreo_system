@@ -1,0 +1,11 @@
+# Set git to handle all line endings automatically
+* text=auto
+
+# File types to be handled
+*.c text
+*.cpp text
+*.h text
+*.hpp text
+*.msg text
+*.yaml text
+*.xml text
