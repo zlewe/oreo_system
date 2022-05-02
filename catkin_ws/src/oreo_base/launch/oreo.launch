@@ -9,7 +9,7 @@
   </node>
   <node pkg="oreo_base" name="cut_scan" type="cut_scan.py"/>
 
-  <node pkg="tf" name="tf" type="static_transform_publisher" args="0.156 0 0 0 0 0 1 base_link laser 100"/>
+  <node pkg="tf" name="tf" type="static_transform_publisher" args="0.156 0 0.37 0 0 0 1 base_link laser 100"/>
   <node pkg="oreo_base" name="motor_controller" type="motor_controller" output="screen"/>
   <node pkg="oreo_base" name="odometer_odom" type="odometer_odom"/>
   <node pkg="oreo_base" name="scale_velocity" type="scale_cmd_vel.py"/>

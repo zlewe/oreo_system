@@ -3,6 +3,10 @@ group "06_sensors" {
         deputy = "localhost";
         exec = "roslaunch velodyne_pointcloud VLP16_points.launch";
     }
+    cmd "zed" {
+        deputy = "localhost";
+        exec = "roslaunch zed_wrapper zed2.launch";
+    }
 }
 group "07_slam" {
     cmd "3d_lego_loam" {
@@ -11,10 +15,17 @@ group "07_slam" {
     }
     cmd "2d_gmapping" {
         deputy = "localhost";
-        exec = "roslaunch gmapping slam_gmapping_pr2.launch scan_topic:=scan";
+        exec = "roslaunch gmapping slam_gmapping_pr2.launch scan_topic:=sick_scan2";
     }
 }
-cmd "88_rviz" {
+group "08_navigation" {
+    cmd "move_base" {
+        deputy = "localhost";
+        exec = "roslaunch navigation move_base_gmapping.launch";
+    }
+}
+
+cmd "78_rviz" {
     deputy = "localhost";
     exec = "rviz -d oreo.rviz";
 }
@@ -30,9 +41,20 @@ cmd "02_oreo" {
     deputy = "localhost";
     exec = "roslaunch oreo_base oreo.launch";
 }
-cmd "99_record" {
+cmd "89_record" {
     deputy = "localhost";
     exec = "/bin/bash record_bag.sh";
+}
+
+group "99_MOT_demo" {
+    cmd "MOT_client" {
+        deputy = "localhost";
+        exec = "/bin/bash /home/oreo/run_LidarMOT_client.sh";
+    }
+    cmd "MOT_rviz" {
+        deputy = "localhost";
+        exec = "rviz -d MOT.rviz";
+    }
 }
 
 script "start_oreo" {
@@ -41,4 +63,29 @@ script "start_oreo" {
     start cmd "02_oreo" wait "running";
     wait ms 1000;
     start group "06_sensors" wait "running";
+}
+
+script "start_oreo_navigation" {
+    start cmd "01_core" wait "running";
+    wait ms 1500;
+    start cmd "02_oreo" wait "running";
+    wait ms 1000;
+    start group "06_sensors" wait "running";
+    wait ms 500;
+    start cmd "2d_gmapping" wait "running";
+    wait ms 500;
+    start group "08_navigation" wait "running";
+}
+
+script "start_MOT_demo" {
+    start cmd "01_core" wait "running";
+    wait ms 1500;
+    start cmd "02_oreo" wait "running";
+    wait ms 1000;
+    start group "06_sensors" wait "running";
+    wait ms 500;
+    start cmd "2d_gmapping" wait "running";
+    start group "101_MOT_demo" wait "running";
+    start cmd "10_joystick";
+    
 }

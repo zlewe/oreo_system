@@ -33,6 +33,8 @@ double wheel_diameter_; //0.12366 #the wheel diameter is 5 inchs. 1 inch = 0.025
 double geer_ratio_; // 43 
 double odo_theta;
 
+geometry_msgs::Twist v_twist_global;
+
 static int l_com_fd, r_com_fd, h_com_fd;
 
 void loadParameters()
@@ -135,10 +137,10 @@ void close_motor(int fd)
 void write_motor(int fd, const char *s, int len, int tries) 
 {
 	for(int i = 0 ; i < tries ; ++i){
-		if( write(fd, s, len) < len )
+    if( write(fd, s, len) < len )
 			continue;
 		else
-			break;
+			return;
 	}
 }
 
@@ -149,7 +151,8 @@ int read_motor(int fd, char *buffer, int len, int tries)
 	char* bufptr = buffer;
 	for(int i = 0 ; i < tries ; ++i){ 
 		while( ( num_bytes = read( fd, bufptr, buffer + len - bufptr - 1 ) ) > 0 ){
-                          bufptr += num_bytes;
+        ROS_DEBUG("%s",bufptr);                  
+        bufptr += num_bytes;
 			if( bufptr[-1] == '\n' || bufptr[-1] == '\r' ){
                                 *bufptr = '\0';
 				return ( bufptr - buffer );
@@ -207,10 +210,14 @@ void setVel(double mmLinearVx, double mmLinearVy, double radAngularV) // mm/s, r
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!type
 void cmd_vel_Callback(const geometry_msgs::Twist& v_twist)
 {
+  v_twist_global = v_twist;
+}
 
+void cmd_vel_set(const geometry_msgs::Twist& v_twist)
+{
   setVel(v_twist.linear.x,v_twist.linear.y,v_twist.angular.z);
   
-  ROS_INFO("I heard: [%f %f]", v_twist.linear.x, v_twist.angular.z);
+  // ROS_INFO("I heard: [%f %f]", v_twist.linear.x, v_twist.angular.z);
 }
 void odometer_Callback(const geometry_msgs::Pose2D& odo_data)
 {
@@ -259,11 +266,12 @@ int main(int argc, char **argv)
     ros::Subscriber odometer_sub = n.subscribe("odometry", 1000, odometer_Callback);
     ros::Subscriber cmd_vel_sub = n.subscribe("cmd_vel", 1000, cmd_vel_Callback);
   
-    ros::Rate loop_rate(20);
+    ros::Rate loop_rate(40);
 
     while (ros::ok())
     {
       oreo_base::EncoderPair e_pair;
+      e_pair.timestamp = ros::Time::now().toSec();
       write_motor(h_com_fd, "POS\r", strlen("POS\r"), 2);
       write_motor(l_com_fd, "POS\r", strlen("POS\r"), 2);
       write_motor(r_com_fd, "POS\r", strlen("POS\r"), 2);
@@ -271,7 +279,7 @@ int main(int argc, char **argv)
       int h_length = read_motor(h_com_fd, h_buffer, 31, 3);
       int l_length = read_motor(l_com_fd, l_buffer, 31, 3);
       int r_length = read_motor(r_com_fd, r_buffer, 31, 3);
-      
+      ROS_DEBUG("h=%s, l=%s, r=%s", h_buffer, l_buffer, r_buffer);
       if((l_length == -1 && r_length == -1 && h_length == -1)||(l_length > 10 && r_length > 10 && h_length > 10)){
         //warning message (-1,-1) to make odometer know something get wrong in encoder
         e_pair.horizontal = -1;
@@ -279,7 +287,7 @@ int main(int argc, char **argv)
         e_pair.right = -1;
         setVel2(0.0,0.0,0.0); 
         ROS_INFO("init motor count: ", ++i);
-        initmotor();
+        // initmotor();
       }else{
       	e_pair.horizontal = atoi(h_buffer);
         e_pair.left = atoi(l_buffer);
@@ -293,6 +301,7 @@ int main(int argc, char **argv)
       encoders_pub.publish(e_pair);
 
       ros::spinOnce();
+      cmd_vel_set(v_twist_global);
       loop_rate.sleep();
 
     }

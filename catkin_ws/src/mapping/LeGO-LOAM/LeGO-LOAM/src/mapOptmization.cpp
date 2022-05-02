@@ -246,15 +246,15 @@ public:
         pubRecentKeyFrames = nh.advertise<sensor_msgs::PointCloud2>("/recent_cloud", 2);
         pubRegisteredCloud = nh.advertise<sensor_msgs::PointCloud2>("/registered_cloud", 2);
 
-        downSizeFilterCorner.setLeafSize(0.2, 0.2, 0.2);
-        downSizeFilterSurf.setLeafSize(0.4, 0.4, 0.4);
-        downSizeFilterOutlier.setLeafSize(0.4, 0.4, 0.4);
+        downSizeFilterCorner.setLeafSize(0.1, 0.1, 0.1);
+        downSizeFilterSurf.setLeafSize(0.2, 0.2, 0.2);
+        downSizeFilterOutlier.setLeafSize(0.2, 0.2, 0.2);
 
-        downSizeFilterHistoryKeyFrames.setLeafSize(0.4, 0.4, 0.4); // for histor key frames of loop closure
-        downSizeFilterSurroundingKeyPoses.setLeafSize(1.0, 1.0, 1.0); // for surrounding key poses of scan-to-map optimization
+        downSizeFilterHistoryKeyFrames.setLeafSize(0.1, 0.1, 0.1); // for histor key frames of loop closure
+        downSizeFilterSurroundingKeyPoses.setLeafSize(0.2, 0.2, 0.2); // for surrounding key poses of scan-to-map optimization
 
-        downSizeFilterGlobalMapKeyPoses.setLeafSize(1.0, 1.0, 1.0); // for global map visualization
-        downSizeFilterGlobalMapKeyFrames.setLeafSize(0.4, 0.4, 0.4); // for global map visualization
+        downSizeFilterGlobalMapKeyPoses.setLeafSize(0.2, 0.2, 0.2); // for global map visualization
+        downSizeFilterGlobalMapKeyFrames.setLeafSize(0.1, 0.1, 0.1); // for global map visualization
 
         odomAftMapped.header.frame_id = "/camera_init";
         odomAftMapped.child_frame_id = "/aft_mapped";

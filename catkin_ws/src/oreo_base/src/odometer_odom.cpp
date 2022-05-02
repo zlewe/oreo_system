@@ -23,6 +23,7 @@ public:
   void GetOdometry(geometry_msgs::Pose2D* msg);
   void SetPrev_Begin_Time(double t){prev_begin_time = t ;prev_end_time = t;}
   void LoadParameters();
+  double ComputeEncoderRate(int64_t encoder_counts, int64_t &diff, int64_t &prev, double begin_time, double &prev_begin_time);
   //double Get_x_vel();
  // double Get_y_vel();
   //double Get_ang_vel();
@@ -54,6 +55,9 @@ private:
   double encoder_update_time_;
   double begin_time;
   double prev_begin_time;
+  double prev_h_begin_time;
+  double prev_r_begin_time;
+  double prev_l_begin_time;
   double end_time;
   double prev_end_time;
   double ang_vel, x_vel, y_vel;
@@ -140,6 +144,23 @@ void Odometer::GetOdometry(geometry_msgs::Pose2D* msg) {
   odo_mutex_.unlock();
 }
 
+double Odometer::ComputeEncoderRate(int64_t encoder_counts, int64_t &diff, int64_t &prev, double begin_time, double &prev_begin_time){
+  if (encoder_counts != -1){
+    diff = encoder_counts-prev;
+    
+    double rate;
+    rate = (double)diff/(begin_time-prev_begin_time);
+    
+    prev_begin_time = begin_time;
+    prev = encoder_counts;
+
+    return rate;
+  }
+  else{
+    return 0.0;
+  }
+}
+
 void Odometer::UpdateOdometry(const oreo_base::EncoderPair::ConstPtr& msg) 
 {
   if (!param_loaded_) 
@@ -155,45 +176,57 @@ void Odometer::UpdateOdometry(const oreo_base::EncoderPair::ConstPtr& msg)
   //std::ofstream odo_log("odo_log.txt", std::ios::out);
 
   double linear_d, /*ang_vel,*/ avg_theta , diff_count;
-  int h_encoder_counts_diff, r_encoder_counts_diff, l_encoder_counts_diff;
+  int64_t h_encoder_counts_diff, r_encoder_counts_diff, l_encoder_counts_diff;
 
   ROS_INFO("[Subscribe Encoder] a: %" PRId64 ", b: %" PRId64 ", c: %" PRId64 ,msg->horizontal, msg->right , msg->left);
   int64_t h_encoder_counts = msg->horizontal;
   int64_t r_encoder_counts = msg->right;
   int64_t l_encoder_counts = msg->left;
 
-  if(h_encoder_counts != -1 || r_encoder_counts != -1 || l_encoder_counts != -1) 
-  {
-    if(!odo_updated_) 
-    {
-      odo_updated_ = true;
-      h_encoder_counts_diff = r_encoder_counts_diff = l_encoder_counts_diff = 0;
-      prev_h_encoder_counts_ = 0;
-      prev_r_encoder_counts_ = 0;
-      prev_l_encoder_counts_ = 0;
-    } 
-    else 
-    {
-      //log << r_encoder_counts << ' ' << h_encoder_counts << std::endl;
-      r_encoder_counts_diff = r_encoder_counts - prev_r_encoder_counts_;
-      h_encoder_counts_diff = h_encoder_counts - prev_h_encoder_counts_;
-      l_encoder_counts_diff = l_encoder_counts - prev_l_encoder_counts_;
+  // if(h_encoder_counts != -1 || r_encoder_counts != -1 || l_encoder_counts != -1) 
+  // {
+  //   if(!odo_updated_) 
+  //   {
+  //     odo_updated_ = true;
+  //     h_encoder_counts_diff = r_encoder_counts_diff = l_encoder_counts_diff = 0;
+  //     prev_h_encoder_counts_ = 0;
+  //     prev_r_encoder_counts_ = 0;
+  //     prev_l_encoder_counts_ = 0;
+  //   } 
+  //   else 
+  //   {
+  //     //log << r_encoder_counts << ' ' << h_encoder_counts << std::endl;
+  //     UpdateEncoder(h_encoder_counts, h_encoder_counts_diff, prev_h_encoder_counts_, msg.timestamp, prev_h_begin_time);
+  //     UpdateEncoder(l_encoder_counts, l_encoder_counts_diff, prev_l_encoder_counts_, msg.timestamp, prev_l_begin_time);
+  //     UpdateEncoder(r_encoder_counts, r_encoder_counts_diff, prev_r_encoder_counts_, msg.timestamp, prev_r_begin_time);
+  //     // r_encoder_counts_diff = r_encoder_counts - prev_r_encoder_counts_;
+  //     // h_encoder_counts_diff = h_encoder_counts - prev_h_encoder_counts_;
+  //     // l_encoder_counts_diff = l_encoder_counts - prev_l_encoder_counts_;
 
-      prev_r_encoder_counts_ = r_encoder_counts;
-      prev_h_encoder_counts_ = h_encoder_counts;
-      prev_l_encoder_counts_ = l_encoder_counts;
-    }
-  } 
-  else 
-  {
-    odo_updated_ = false;
-  }
+  //     // prev_r_encoder_counts_ = r_encoder_counts;
+  //     // prev_h_encoder_counts_ = h_encoder_counts;
+  //     // prev_l_encoder_counts_ = l_encoder_counts;
+  //   }
+  // } 
+  // else 
+  // {
+  //   odo_updated_ = false;
+  // }
+
+  double h_encoder_rate = ComputeEncoderRate(h_encoder_counts, h_encoder_counts_diff, prev_h_encoder_counts_, msg->timestamp, prev_h_begin_time);
+  double l_encoder_rate = ComputeEncoderRate(l_encoder_counts, l_encoder_counts_diff, prev_l_encoder_counts_, msg->timestamp, prev_l_begin_time);
+  double r_encoder_rate = ComputeEncoderRate(r_encoder_counts, r_encoder_counts_diff, prev_r_encoder_counts_, msg->timestamp, prev_r_begin_time);
+
   //kinematics
   begin_time = ros::Time::now().toSec();
-  encoder_update_time_ = begin_time - prev_begin_time;
-  double h_vel = (double)h_encoder_counts_diff / horizontal_wheel_counts_per_rev_ * wheel_diameter_ * M_PI / encoder_update_time_;
-  double r_vel = (double)r_encoder_counts_diff / right_wheel_counts_per_rev_ * wheel_diameter_ * M_PI / encoder_update_time_;
-  double l_vel = (double)l_encoder_counts_diff / left_wheel_counts_per_rev_ * wheel_diameter_ * M_PI / encoder_update_time_;
+  // encoder_update_time_ = begin_time - prev_begin_time;
+  // double h_vel = (double)h_encoder_counts_diff / horizontal_wheel_counts_per_rev_ * wheel_diameter_ * M_PI / encoder_update_time_;
+  // double r_vel = (double)r_encoder_counts_diff / right_wheel_counts_per_rev_ * wheel_diameter_ * M_PI / encoder_update_time_;
+  // double l_vel = (double)l_encoder_counts_diff / left_wheel_counts_per_rev_ * wheel_diameter_ * M_PI / encoder_update_time_;
+  double h_vel = (double)h_encoder_rate / horizontal_wheel_counts_per_rev_ * wheel_diameter_ * M_PI;
+  double r_vel = (double)r_encoder_rate / right_wheel_counts_per_rev_ * wheel_diameter_ * M_PI;
+  double l_vel = (double)l_encoder_rate / left_wheel_counts_per_rev_ * wheel_diameter_ * M_PI;
+  
   x_vel = (r_vel - l_vel) / sqrt(3) * 0.97;
   y_vel = (r_vel + l_vel - 2 * h_vel) / 3 * 0.97;
   //odo_file <<h_vel <<" "<<r_vel<<" "<<l_vel<<endl;
